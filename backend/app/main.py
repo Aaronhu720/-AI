@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, user, today, coach
+from app.api import auth, user, today, coach, training
 from app.core.database import create_tables
 
 
@@ -27,6 +27,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
 app.include_router(today.router, prefix="/api")
 app.include_router(coach.router, prefix="/api")
+app.include_router(training.router, prefix="/api")
 
 
 @app.get("/api/health")
