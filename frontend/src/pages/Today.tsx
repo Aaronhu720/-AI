@@ -56,7 +56,7 @@ function RingProgress({ percent, size = 68, stroke = 5.5, color, children }: {
   );
 }
 
-const TASK_META: Record<string, { icon: JSX.Element; color: string }> = {
+const TASK_META: Record<string, { icon: React.ReactNode; color: string }> = {
   diet: {
     icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2M12 2a10 10 0 100 20 10 10 0 000-20z" /></svg>,
     color: 'text-primary',
