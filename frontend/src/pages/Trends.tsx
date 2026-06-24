@@ -48,7 +48,7 @@ function LineChart({ data, dataKey, color, unit, targetLine }: {
   const chartW = W - PL - PR;
   const chartH = H - PT - PB;
 
-  const points = data.map((d, i) => ({
+  const points = data.map((_, i) => ({
     x: PL + (data.length === 1 ? chartW / 2 : (i / (data.length - 1)) * chartW),
     y: PT + chartH - ((values[i] - yMin) / yRange) * chartH,
   }));
@@ -118,11 +118,10 @@ function LineChart({ data, dataKey, color, unit, targetLine }: {
   );
 }
 
-function BarChart({ data, dataKey, color, unit }: {
+function BarChart({ data, dataKey, color }: {
   data: { date: string; [k: string]: unknown }[];
   dataKey: string;
   color: string;
-  unit: string;
 }) {
   if (data.length === 0) {
     return (
@@ -288,7 +287,8 @@ export default function TrendsPage() {
               data={data.calorie_data}
               dataKey="calories"
               color="#FF6B35"
-              unit="kcal"
+
+
             />
           </>
         )}
@@ -303,7 +303,8 @@ export default function TrendsPage() {
               data={data.workout_data}
               dataKey="calories"
               color="#2DD4A8"
-              unit="kcal"
+
+
             />
           </>
         )}
