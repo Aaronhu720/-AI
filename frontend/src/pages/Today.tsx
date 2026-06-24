@@ -42,6 +42,7 @@ export default function TodayPage() {
   const [data, setData] = useState<TodayData | null>(null);
   const [weightInput, setWeightInput] = useState('');
   const [showWeightInput, setShowWeightInput] = useState(false);
+  const [waterLoading, setWaterLoading] = useState(false);
 
   const load = () => api.get<TodayData>('/today').then(setData).catch(() => {});
 
@@ -60,6 +61,26 @@ export default function TodayPage() {
     load();
   }
 
+  async function addWater() {
+    if (waterLoading) return;
+    setWaterLoading(true);
+    try {
+      const res = await api.post<{ cups: number }>('/water');
+      if (data) setData({ ...data, water_cups: res.cups });
+    } catch {}
+    setWaterLoading(false);
+  }
+
+  async function removeWater() {
+    if (waterLoading || !data || data.water_cups <= 0) return;
+    setWaterLoading(true);
+    try {
+      const res = await api.delete<{ cups: number }>('/water');
+      if (data) setData({ ...data, water_cups: res.cups });
+    } catch {}
+    setWaterLoading(false);
+  }
+
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 6) return '夜深了';
@@ -74,6 +95,7 @@ export default function TodayPage() {
   const completedTasks = data.tasks.filter(t => t.completed).length;
   const taskPercent = data.tasks.length > 0 ? Math.round((completedTasks / data.tasks.length) * 100) : 0;
   const calPercent = data.calories_target > 0 ? Math.round((data.calories_consumed / data.calories_target) * 100) : 0;
+  const waterPercent = data.water_target > 0 ? Math.round((data.water_cups / data.water_target) * 100) : 0;
 
   return (
     <div className="space-y-4 pb-6">
@@ -168,6 +190,47 @@ export default function TodayPage() {
         </div>
       </div>
 
+      {/* Water tracking */}
+      <div className="bg-card rounded-xl border border-border p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">💧</span>
+            <span className="text-sm font-medium">饮水追踪</span>
+          </div>
+          <span className="text-xs text-muted">{data.water_cups}/{data.water_target} 杯</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={removeWater}
+            disabled={data.water_cups <= 0}
+            className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted disabled:opacity-30 active:scale-90 transition-transform"
+          >
+            <span className="text-lg leading-none">−</span>
+          </button>
+          <div className="flex-1">
+            <div className="flex gap-1">
+              {Array.from({ length: data.water_target }, (_, i) => (
+                <div
+                  key={i}
+                  className={`flex-1 h-6 rounded transition-all duration-300 ${
+                    i < data.water_cups ? 'bg-blue-400' : 'bg-gray-100'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={addWater}
+            className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-500 active:scale-90 transition-transform"
+          >
+            <span className="text-lg leading-none">+</span>
+          </button>
+        </div>
+        {waterPercent >= 100 && (
+          <p className="text-xs text-blue-500 text-center mt-2 font-medium">今日饮水目标已达成！🎉</p>
+        )}
+      </div>
+
       {/* Net calories card */}
       <div className="bg-card rounded-xl border border-border p-4">
         <div className="flex items-center justify-between text-sm">
@@ -175,7 +238,7 @@ export default function TodayPage() {
             <p className="text-muted text-xs">摄入</p>
             <p className="font-bold text-primary">{data.calories_consumed}</p>
           </div>
-          <span className="text-muted text-lg">-</span>
+          <span className="text-muted text-lg">−</span>
           <div className="text-center">
             <p className="text-muted text-xs">消耗</p>
             <p className="font-bold text-secondary">{data.calories_burned}</p>
@@ -250,7 +313,7 @@ export default function TodayPage() {
         </Link>
       </div>
 
-      {/* Goal reminder */}
+      {/* Goal progress */}
       {data.weight && data.target_weight && (
         <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center justify-between mb-2">

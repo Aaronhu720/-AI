@@ -12,8 +12,11 @@ from app.models.weight import WeightRecord
 from app.models.meal import Meal
 from app.models.task import DailyTask
 from app.models.workout import WorkoutLog
+from app.models.water import WaterLog
 
 router = APIRouter(tags=["today"])
+
+WATER_TARGET = 8
 
 
 def _calorie_target(user: User) -> int:
@@ -23,10 +26,17 @@ def _calorie_target(user: User) -> int:
     return 1800
 
 
+def _day_range():
+    now = datetime.now(timezone.utc)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=8)
+    end = start + timedelta(hours=32)
+    return start, end
+
+
 async def _calc_streak(user_id: str, db: AsyncSession) -> int:
     streak = 0
     d = date.today()
-    while True:
+    while streak < 365:
         result = await db.execute(
             select(func.count()).select_from(DailyTask).where(
                 DailyTask.user_id == user_id,
@@ -40,8 +50,6 @@ async def _calc_streak(user_id: str, db: AsyncSession) -> int:
             d -= timedelta(days=1)
         else:
             break
-        if streak > 365:
-            break
     return streak
 
 
@@ -51,9 +59,8 @@ async def get_today(
     db: AsyncSession = Depends(get_db),
 ):
     today_date = date.today()
+    day_start, day_end = _day_range()
     now = datetime.now(timezone.utc)
-    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=8)
-    day_end = day_start + timedelta(hours=32)
 
     # Latest weight
     weight_result = await db.execute(
@@ -84,7 +91,7 @@ async def get_today(
     )
     calories_consumed = cal_result.scalar() or 0
 
-    # Today's meal count
+    # Today's meal types count
     meal_count_result = await db.execute(
         select(func.count(func.distinct(Meal.meal_type)))
         .where(Meal.user_id == user.id, Meal.recorded_at >= day_start, Meal.recorded_at < day_end)
@@ -110,6 +117,13 @@ async def get_today(
     )
     weight_logged_today = (today_weight_result.scalar() or 0) > 0
 
+    # Today's water
+    water_result = await db.execute(
+        select(func.coalesce(func.sum(WaterLog.cups), 0))
+        .where(WaterLog.user_id == user.id, WaterLog.created_at >= day_start, WaterLog.created_at < day_end)
+    )
+    water_cups = water_result.scalar() or 0
+
     # Tasks
     tasks_result = await db.execute(
         select(DailyTask)
@@ -134,7 +148,7 @@ async def get_today(
         )
         tasks = tasks_result.scalars().all()
 
-    # Auto-complete tasks
+    # Auto-complete tasks based on actual data
     changed = False
     for t in tasks:
         if t.task_type == "weight" and weight_logged_today and not t.completed:
@@ -149,17 +163,19 @@ async def get_today(
             t.completed = True
             t.completed_at = now
             changed = True
+        elif t.task_type == "water" and water_cups >= WATER_TARGET and not t.completed:
+            t.completed = True
+            t.completed_at = now
+            changed = True
     if changed:
         await db.commit()
 
     day_count = (today_date - user.created_at.date()).days + 1
     cal_target = _calorie_target(user)
-
-    # Streak
     streak = await _calc_streak(user.id, db)
 
-    # AI tip based on time and status
-    h = datetime.now().hour
+    # Dynamic AI tip
+    h = (datetime.now(timezone.utc) + timedelta(hours=-7)).hour  # LA time approx
     if h < 10:
         if not weight_logged_today:
             tip = "早上好！起床后记得称量体重，空腹测量最准确哦 ⏰"
@@ -192,8 +208,8 @@ async def get_today(
         "calories_target": cal_target,
         "calories_burned": workout_calories,
         "workout_minutes": workout_minutes,
-        "water_cups": 0,
-        "water_target": 8,
+        "water_cups": water_cups,
+        "water_target": WATER_TARGET,
         "tasks": [
             {
                 "id": t.id,
@@ -223,6 +239,49 @@ async def record_weight(
     user.current_weight = data.weight
     await db.commit()
     return {"ok": True}
+
+
+@router.post("/water")
+async def add_water(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    log = WaterLog(user_id=user.id, cups=1)
+    db.add(log)
+    await db.commit()
+
+    day_start, day_end = _day_range()
+    result = await db.execute(
+        select(func.coalesce(func.sum(WaterLog.cups), 0))
+        .where(WaterLog.user_id == user.id, WaterLog.created_at >= day_start, WaterLog.created_at < day_end)
+    )
+    total = result.scalar() or 0
+    return {"ok": True, "cups": total}
+
+
+@router.delete("/water")
+async def remove_water(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    day_start, day_end = _day_range()
+    result = await db.execute(
+        select(WaterLog)
+        .where(WaterLog.user_id == user.id, WaterLog.created_at >= day_start, WaterLog.created_at < day_end)
+        .order_by(WaterLog.created_at.desc())
+        .limit(1)
+    )
+    log = result.scalar_one_or_none()
+    if log:
+        await db.delete(log)
+        await db.commit()
+
+    total_result = await db.execute(
+        select(func.coalesce(func.sum(WaterLog.cups), 0))
+        .where(WaterLog.user_id == user.id, WaterLog.created_at >= day_start, WaterLog.created_at < day_end)
+    )
+    total = total_result.scalar() or 0
+    return {"ok": True, "cups": total}
 
 
 @router.post("/tasks/{task_id}/toggle")
