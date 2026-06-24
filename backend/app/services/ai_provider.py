@@ -43,7 +43,7 @@ class DoubaoProvider(AIProvider):
             res = await client.post(
                 self.API_URL,
                 headers={"Authorization": f"Bearer {settings.DOUBAO_API_KEY}"},
-                json={"model": "doubao-1-5-pro-32k-250115", "messages": msgs, "max_tokens": 1024},
+                json={"model": "doubao-seed-2-0-lite", "messages": msgs, "max_tokens": 1024},
             )
             res.raise_for_status()
             return res.json()["choices"][0]["message"]["content"]
