@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "doubao"
     DEEPSEEK_API_KEY: str = ""
     DOUBAO_API_KEY: str = ""
+    DOUBAO_ENDPOINT_ID: str = "ep-20260525135551-dzzvn"
     OPENAI_API_KEY: str = ""
     QWEN_API_KEY: str = ""
 
