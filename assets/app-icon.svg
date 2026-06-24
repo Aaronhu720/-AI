@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A3D"/>
+      <stop offset="100%" stop-color="#F06225"/>
+    </linearGradient>
+    <linearGradient id="flame1" x1="50%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#FFA500"/>
+      <stop offset="100%" stop-color="#FF4500"/>
+    </linearGradient>
+    <linearGradient id="flame2" x1="50%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="60%" stop-color="#FFE4B5"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="1024" height="1024" rx="224" ry="224" fill="url(#bg)"/>
+  <!-- Outer flame -->
+  <path d="M512 180 C512 180 340 380 340 560 C340 660 380 730 440 770 C420 720 420 660 460 600 C500 540 512 500 512 500 C512 500 524 540 564 600 C604 660 604 720 584 770 C644 730 684 660 684 560 C684 380 512 180 512 180 Z" fill="url(#flame1)" opacity="0.95"/>
+  <!-- Inner flame -->
+  <path d="M512 380 C512 380 430 500 430 590 C430 650 465 700 512 720 C559 700 594 650 594 590 C594 500 512 380 512 380 Z" fill="url(#flame2)" opacity="0.9"/>
+  <!-- Small spark -->
+  <circle cx="512" cy="560" r="28" fill="white" opacity="0.8"/>
+  <!-- Text "AI" -->
+  <text x="512" y="900" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="120" fill="white" opacity="0.95">AI</text>
+</svg>
