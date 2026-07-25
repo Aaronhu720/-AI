@@ -12,7 +12,6 @@ interface User {
   current_weight: number | null;
   target_weight: number | null;
   goal: string | null;
-  target_weight: number | null;
   days_per_week: number | null;
   minutes_per_session: number | null;
   onboarding_completed: boolean;
