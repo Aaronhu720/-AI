@@ -35,7 +35,7 @@ function AppRoutes() {
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
       <Route path="/onboarding" element={DEV_PREVIEW ? <OnboardingPage /> : (user ? <OnboardingPage /> : <Navigate to="/login" replace />)} />
       <Route element={DEV_PREVIEW ? <Layout /> : <ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route path="/" element={<TodayPage />} />
+        <Route path="/" element={<MembershipPage />} />
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/diet" element={<DietPage />} />
         <Route path="/trends" element={<TrendsPage />} />
