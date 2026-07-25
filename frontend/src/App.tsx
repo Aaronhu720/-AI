@@ -10,6 +10,9 @@ import DietPage from '@/pages/Diet';
 import TrendsPage from '@/pages/Trends';
 import CoachPage from '@/pages/Coach';
 import SettingsPage from '@/pages/Settings';
+import ProfilePage from '@/pages/Profile';
+import GoalsPage from '@/pages/Goals';
+import RemindersPage from '@/pages/Reminders';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isLoading, user } = useAuth();
@@ -37,6 +40,9 @@ function AppRoutes() {
         <Route path="/trends" element={<TrendsPage />} />
         <Route path="/coach" element={<CoachPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/goals" element={<GoalsPage />} />
+        <Route path="/reminders" element={<RemindersPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

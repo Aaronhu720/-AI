@@ -1,26 +1,23 @@
+import { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 const MENU_ITEMS = [
   {
-    label: '个人资料', desc: '修改昵称、身体数据',
+    label: '个人资料', desc: '修改昵称、身体数据', to: '/profile',
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
     color: 'text-blue-500', bg: 'bg-blue-50',
   },
   {
-    label: '目标设置', desc: '调整减脂目标和计划',
+    label: '目标设置', desc: '调整减脂目标和计划', to: '/goals',
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
     color: 'text-orange-500', bg: 'bg-orange-50',
   },
   {
-    label: '提醒设置', desc: '称重、饮食、运动提醒',
+    label: '提醒设置', desc: '称重、饮食、运动提醒', to: '/reminders',
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
     color: 'text-purple-500', bg: 'bg-purple-50',
-  },
-  {
-    label: '会员中心', desc: '',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
-    color: 'text-amber-500', bg: 'bg-amber-50',
   },
 ];
 
@@ -32,13 +29,27 @@ const LINKS = [
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   function handleLogout() {
     logout();
     navigate('/login');
   }
 
-  const memberDesc = user?.is_member ? '已开通会员' : '免费版';
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await api.post('/auth/delete-account', {});
+      logout();
+      navigate('/login');
+    } catch {
+      alert('删除失败，请稍后重试');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  }
 
   return (
     <div className="space-y-4 pb-6 animate-fade-in">
@@ -61,7 +72,7 @@ export default function SettingsPage() {
 
       <div className="premium-card rounded-3xl overflow-hidden">
         {MENU_ITEMS.map((item, i) => (
-          <button key={item.label}
+          <Link key={item.label} to={item.to}
             className={`w-full flex items-center gap-3.5 p-4 text-left active:bg-black/[0.02] transition-colors ${
               i < MENU_ITEMS.length - 1 ? 'border-b border-black/[0.04]' : ''
             }`}>
@@ -70,14 +81,12 @@ export default function SettingsPage() {
             </div>
             <div className="flex-1">
               <p className="text-[13px] font-semibold text-dark">{item.label}</p>
-              <p className="text-[11px] text-muted font-medium mt-0.5">
-                {item.label === '会员中心' ? memberDesc : item.desc}
-              </p>
+              <p className="text-[11px] text-muted font-medium mt-0.5">{item.desc}</p>
             </div>
             <svg className="w-4 h-4 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-          </button>
+          </Link>
         ))}
       </div>
 
@@ -95,7 +104,7 @@ export default function SettingsPage() {
         ))}
         <div className="flex items-center justify-between p-4 border-t border-black/[0.04]">
           <span className="text-[13px] font-medium text-dark">版本</span>
-          <span className="text-[11px] text-muted font-medium">v1.0.0</span>
+          <span className="text-[11px] text-muted font-medium">v2.0.0</span>
         </div>
       </div>
 
@@ -103,6 +112,32 @@ export default function SettingsPage() {
         className="w-full py-3.5 rounded-2xl text-[13px] font-semibold text-red-500 premium-card active:scale-[0.98] transition-transform">
         退出登录
       </button>
+
+      <button onClick={() => setShowDeleteConfirm(true)}
+        className="w-full py-3 rounded-2xl text-[12px] font-medium text-muted active:scale-[0.98] transition-transform">
+        删除账号
+      </button>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-8">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-[16px] font-bold text-dark text-center">确认删除账号</h3>
+            <p className="text-[13px] text-muted text-center leading-relaxed">
+              删除后，您的所有数据将被永久清除且无法恢复，包括饮食记录、运动数据、体重历史等。
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-3 rounded-2xl text-[13px] font-semibold text-dark bg-gray-100 active:scale-[0.98] transition-transform">
+                取消
+              </button>
+              <button onClick={handleDeleteAccount} disabled={deleting}
+                className="flex-1 py-3 rounded-2xl text-[13px] font-semibold text-white bg-red-500 active:scale-[0.98] transition-transform disabled:opacity-50">
+                {deleting ? '删除中...' : '确认删除'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="text-center text-[10px] text-muted font-medium leading-relaxed px-4">
         本App提供的内容仅用于健康生活方式参考，不构成医疗建议。如有疾病请咨询医生。
