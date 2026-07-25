@@ -10,6 +10,7 @@ import DietPage from '@/pages/Diet';
 import TrendsPage from '@/pages/Trends';
 import CoachPage from '@/pages/Coach';
 import SettingsPage from '@/pages/Settings';
+import MembershipPage from '@/pages/Membership';
 import ProfilePage from '@/pages/Profile';
 import GoalsPage from '@/pages/Goals';
 import RemindersPage from '@/pages/Reminders';
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Route path="/trends" element={<TrendsPage />} />
         <Route path="/coach" element={<CoachPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/membership" element={<MembershipPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/goals" element={<GoalsPage />} />
         <Route path="/reminders" element={<RemindersPage />} />
