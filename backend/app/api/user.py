@@ -124,7 +124,10 @@ logger = logging.getLogger(__name__)
 APPLE_VERIFY_URL = "https://buy.itunes.apple.com/verifyReceipt"
 APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt"
 BUNDLE_ID = "com.aaronusa.xiaoran"
-PRODUCT_ID = "com.aaronusa.xiaoran.premium.monthly"
+PRODUCT_IDS = {
+    "com.aaronusa.xiaoran.premium.monthly",
+    "com.aaronusa.xiaoran.premium.yearly",
+}
 
 
 class AppleReceiptRequest(BaseModel):
@@ -162,7 +165,7 @@ async def verify_apple_receipt(
     latest_expires = None
 
     for item in in_app:
-        if item.get("product_id") == PRODUCT_ID:
+        if item.get("product_id") in PRODUCT_IDS:
             expires_ms = item.get("expires_date_ms")
             if expires_ms:
                 expires_dt = datetime.fromtimestamp(int(expires_ms) / 1000, tz=timezone.utc)

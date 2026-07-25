@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { api } from '@/lib/api';
-import { isNative, initIAP, getProduct, purchase, restorePurchases, onPurchaseApproved } from '@/lib/iap';
+import { isNative, initIAP, getProduct, purchase, restorePurchases, onPurchaseApproved, MONTHLY_ID, YEARLY_ID } from '@/lib/iap';
+
+type Plan = 'monthly' | 'yearly';
 
 export default function MembershipPage() {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  const [price, setPrice] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<Plan>('yearly');
+  const [monthlyPrice, setMonthlyPrice] = useState('¥12/月');
+  const [yearlyPrice, setYearlyPrice] = useState('¥98/年');
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [ready, setReady] = useState(false);
@@ -16,17 +20,14 @@ export default function MembershipPage() {
   useEffect(() => {
     if (!isNative()) {
       setReady(true);
-      setPrice('¥12/月');
       return;
     }
 
     initIAP().then(() => {
-      const product = getProduct();
-      if (product?.pricing?.price) {
-        setPrice(product.pricing.price);
-      } else {
-        setPrice('¥12/月');
-      }
+      const monthly = getProduct(MONTHLY_ID);
+      const yearly = getProduct(YEARLY_ID);
+      if (monthly?.pricing?.price) setMonthlyPrice(monthly.pricing.price);
+      if (yearly?.pricing?.price) setYearlyPrice(yearly.pricing.price);
       setReady(true);
 
       onPurchaseApproved(async (receipt) => {
@@ -41,12 +42,13 @@ export default function MembershipPage() {
   async function handlePurchase() {
     setError('');
     setLoading(true);
+    const productId = selectedPlan === 'yearly' ? YEARLY_ID : MONTHLY_ID;
     try {
       if (isNative()) {
-        const ok = await purchase();
+        const ok = await purchase(productId);
         if (!ok) setError('购买未完成');
       } else {
-        await api.post('/user/subscribe', { plan: 'monthly' });
+        await api.post('/user/subscribe', { plan: selectedPlan });
         await refreshUser();
       }
     } catch {
@@ -98,10 +100,36 @@ export default function MembershipPage() {
       </div>
 
       {!isMember && (
-        <div className="premium-card rounded-3xl p-5 space-y-4">
-          <div className="text-center">
-            <p className="text-[28px] font-bold text-dark">{price || '...'}</p>
-            <p className="text-[12px] text-muted mt-1">自动续订，可随时取消</p>
+        <div className="space-y-3">
+          <div className="flex gap-3">
+            <button
+              onClick={() => setSelectedPlan('monthly')}
+              className={`flex-1 rounded-2xl p-4 text-left transition-all ${
+                selectedPlan === 'monthly'
+                  ? 'premium-card ring-2 ring-primary shadow-glow-sm'
+                  : 'premium-card opacity-70'
+              }`}
+            >
+              <p className="text-[11px] text-muted font-medium">月度订阅</p>
+              <p className="text-[22px] font-bold text-dark mt-1">{monthlyPrice}</p>
+              <p className="text-[11px] text-muted mt-1">按月自动续订</p>
+            </button>
+
+            <button
+              onClick={() => setSelectedPlan('yearly')}
+              className={`flex-1 rounded-2xl p-4 text-left relative transition-all ${
+                selectedPlan === 'yearly'
+                  ? 'premium-card ring-2 ring-primary shadow-glow-sm'
+                  : 'premium-card opacity-70'
+              }`}
+            >
+              <span className="absolute -top-2 right-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                省32%
+              </span>
+              <p className="text-[11px] text-muted font-medium">年度订阅</p>
+              <p className="text-[22px] font-bold text-dark mt-1">{yearlyPrice}</p>
+              <p className="text-[11px] text-muted mt-1">按年自动续订</p>
+            </button>
           </div>
 
           {error && (
@@ -115,7 +143,7 @@ export default function MembershipPage() {
             disabled={loading || !ready}
             className="w-full py-4 bg-warm text-white rounded-2xl text-[15px] font-semibold disabled:opacity-50 shadow-glow active:scale-[0.98] transition-transform"
           >
-            {loading ? '处理中...' : '立即订阅'}
+            {loading ? '处理中...' : `立即订阅 · ${selectedPlan === 'yearly' ? yearlyPrice : monthlyPrice}`}
           </button>
 
           <button
@@ -160,7 +188,7 @@ export default function MembershipPage() {
       {!isMember && (
         <div className="px-2 space-y-2">
           <p className="text-[10px] text-muted leading-relaxed">
-            订阅将通过您的 Apple ID 账户收取费用。订阅会在当前周期结束前24小时内自动续订，届时将向您的账户收取续订费用。您可以在 iPhone 的"设置"&gt;"Apple ID"&gt;"订阅"中管理或取消订阅。
+            订阅将通过您的 Apple ID 账户收取费用。订阅会在当前周期结束前24小时内自动续订，届时将向您的账户收取续订费用。您可以在 iPhone 的"设置"&gt;"Apple ID"&gt;"订阅"中管理或取消订阅。免费试用期（如适用）未使用部分将在购买订阅时失效。
           </p>
           <p className="text-[10px] text-muted leading-relaxed">
             <a href="/terms.html" className="text-primary">用户协议</a>

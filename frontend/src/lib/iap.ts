@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 
-const PRODUCT_ID = 'com.aaronusa.xiaoran.premium.monthly';
+export const MONTHLY_ID = 'com.aaronusa.xiaoran.premium.monthly';
+export const YEARLY_ID = 'com.aaronusa.xiaoran.premium.yearly';
 
 declare global {
   interface Window {
@@ -33,11 +34,18 @@ export async function initIAP(): Promise<void> {
       }
       const CdvPurchase = window.CdvPurchase;
 
-      store.register([{
-        id: PRODUCT_ID,
-        type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
-        platform: CdvPurchase.Platform.APPLE_APPSTORE,
-      }]);
+      store.register([
+        {
+          id: MONTHLY_ID,
+          type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
+          platform: CdvPurchase.Platform.APPLE_APPSTORE,
+        },
+        {
+          id: YEARLY_ID,
+          type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
+          platform: CdvPurchase.Platform.APPLE_APPSTORE,
+        },
+      ]);
 
       store.initialize([CdvPurchase.Platform.APPLE_APPSTORE]).then(() => {
         storeReady = true;
@@ -50,17 +58,17 @@ export async function initIAP(): Promise<void> {
   return initPromise;
 }
 
-export function getProduct() {
+export function getProduct(productId: string) {
   const store = getStore();
   if (!store) return null;
-  return store.get(PRODUCT_ID) || null;
+  return store.get(productId) || null;
 }
 
-export async function purchase(): Promise<boolean> {
+export async function purchase(productId: string): Promise<boolean> {
   const store = getStore();
   if (!store) return false;
 
-  const product = store.get(PRODUCT_ID);
+  const product = store.get(productId);
   if (!product) return false;
 
   const offer = product.getOffer();
