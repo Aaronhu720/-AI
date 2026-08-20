@@ -153,6 +153,17 @@ export default function MembershipPage() {
           >
             {restoring ? '恢复中...' : '恢复已购买'}
           </button>
+
+          <div className="space-y-1.5 pt-1">
+            <p className="text-[10px] text-muted/70 leading-relaxed">
+              订阅将通过您的 Apple ID 账户收取费用。订阅会在当前周期结束前24小时内自动续订，届时将向您的账户收取续订费用。您可以在"设置"&gt;"Apple ID"&gt;"订阅"中管理或取消订阅。
+            </p>
+            <div className="flex justify-center gap-3">
+              <a href="/terms.html" className="text-[11px] text-primary font-medium">用户协议</a>
+              <span className="text-[11px] text-muted">·</span>
+              <a href="/privacy.html" className="text-[11px] text-primary font-medium">隐私政策</a>
+            </div>
+          </div>
         </div>
       )}
 
@@ -185,16 +196,6 @@ export default function MembershipPage() {
         ))}
       </div>
 
-      <div className="px-2 space-y-2 pb-4">
-        <p className="text-[11px] text-muted/80 leading-relaxed">
-          订阅将通过您的 Apple ID 账户收取费用。订阅会在当前周期结束前24小时内自动续订，届时将向您的账户收取续订费用。您可以在 iPhone 的"设置"&gt;"Apple ID"&gt;"订阅"中管理或取消订阅。免费试用期（如适用）未使用部分将在购买订阅时失效。
-        </p>
-        <div className="flex justify-center gap-4">
-          <a href="/terms.html" className="text-[12px] text-primary font-medium">用户协议</a>
-          <span className="text-[12px] text-muted">·</span>
-          <a href="/privacy.html" className="text-[12px] text-primary font-medium">隐私政策</a>
-        </div>
-      </div>
     </div>
   );
 }
