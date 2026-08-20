@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mac Commands</title>
+<style>
+body { background: #1a1a2e; color: #eee; font-family: monospace; padding: 20px; }
+h3 { color: #ccc; margin-top: 30px; }
+pre {
+  background: #16213e; padding: 15px; border-radius: 8px; cursor: pointer;
+  border: 1px solid #0f3460; font-size: 14px; line-height: 1.6;
+  white-space: pre-wrap; word-break: break-all;
+}
+pre:hover { border-color: #00d4ff; }
+pre.copied { border-color: #00ff88; }
+.msg { color: #00ff88; font-size: 12px; margin-top: 5px; display: none; }
+</style>
+</head>
+<body>
+<h2>Half日记 iOS 更新命令</h2>
+
+<h3>第一步：Pull + Build + Sync</h3>
+<pre onclick="copyCmd(this)">cd ~/heartbox-mobile && git pull && npm run build && npx cap sync ios</pre>
+<div class="msg">已复制!</div>
+
+<h3>第二步：修改版本号</h3>
+<pre onclick="copyCmd(this)">sed -i '' 's/1.5.4/1.5.5/g' ios/App/App/Info.plist && grep "CFBundleVersion" -A 1 ios/App/App/Info.plist</pre>
+<div class="msg">已复制!</div>
+
+<h3>第三步：Xcode操作</h3>
+<p style="color:#aaa;">Build号改成比当前大的数字，然后：Product → Archive → Distribute App</p>
+
+<script>
+function copyCmd(el) {
+  navigator.clipboard.writeText(el.textContent);
+  el.classList.add('copied');
+  el.nextElementSibling.style.display = 'block';
+  setTimeout(() => { el.classList.remove('copied'); el.nextElementSibling.style.display = 'none'; }, 2000);
+}
+</script>
+</body>
+</html>
