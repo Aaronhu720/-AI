@@ -7,7 +7,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers, signal: controller.signal });
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('网络连接超时，请检查网络后重试');
+    }
+    throw new Error('网络连接失败，请检查网络后重试');
+  }
+  clearTimeout(timeout);
 
   if (res.status === 401) {
     localStorage.removeItem('xiaoran-token');

@@ -1,3 +1,5 @@
+import json
+import logging
 from datetime import date, datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends
@@ -9,6 +11,9 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.meal import Meal
+from app.services.ai_provider import get_vision_provider
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/diet", tags=["diet"])
 
@@ -39,6 +44,64 @@ COMMON_FOODS = [
     {"name": "炸鸡(一份)", "calories": 450, "protein": 28, "carbs": 18, "fat": 30},
     {"name": "汉堡(一个)", "calories": 500, "protein": 25, "carbs": 40, "fat": 26},
 ]
+
+
+FOOD_RECOGNITION_PROMPT = """分析这张食物照片，识别图中的每种食物，估算每种食物的营养成分。
+
+请严格按以下JSON格式返回，不要添加任何其他文字：
+{
+  "foods": [
+    {
+      "name": "食物名称",
+      "portion": "份量描述(如：一碗、100g、一个)",
+      "calories": 估算热量(整数),
+      "protein": 蛋白质克数(保留1位小数),
+      "carbs": 碳水克数(保留1位小数),
+      "fat": 脂肪克数(保留1位小数)
+    }
+  ],
+  "total_calories": 总热量(整数),
+  "summary": "一句话总结这顿饭的营养评价(20字以内)"
+}
+
+注意：
+- 只识别图中可见的食物
+- 热量和营养成分按常见份量估算
+- 如果不确定份量，按中等份量估算"""
+
+
+class PhotoAnalyzeRequest(BaseModel):
+    image_base64: str
+    meal_type: str = "lunch"
+
+
+@router.post("/analyze-photo")
+async def analyze_food_photo(
+    req: PhotoAnalyzeRequest,
+    user: User = Depends(get_current_user),
+):
+    try:
+        vision = get_vision_provider()
+        result_text = await vision.analyze_image(req.image_base64, FOOD_RECOGNITION_PROMPT)
+        start = result_text.find("{")
+        end = result_text.rfind("}") + 1
+        if start >= 0 and end > start:
+            result_text = result_text[start:end]
+        result = json.loads(result_text)
+        return result
+    except json.JSONDecodeError:
+        return {
+            "foods": [],
+            "total_calories": 0,
+            "summary": "无法识别，请手动输入",
+        }
+    except Exception as e:
+        logger.error(f"Photo analysis failed: {e}")
+        return {
+            "foods": [],
+            "total_calories": 0,
+            "summary": "识别失败，请手动输入",
+        }
 
 
 @router.get("/foods")

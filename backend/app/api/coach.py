@@ -36,7 +36,7 @@ async def chat(
 
     messages = [{"role": m.role, "content": m.content} for m in history]
 
-    reply = await coach_reply(user, messages)
+    reply = await coach_reply(user, messages, db)
 
     ai_msg = ChatMessage(user_id=user.id, role="assistant", content=reply)
     db.add(ai_msg)

@@ -31,6 +31,7 @@ def user_dict(u: User) -> dict:
         "height": u.height,
         "current_weight": u.current_weight,
         "target_weight": u.target_weight,
+        "goal": u.goal,
         "onboarding_completed": u.onboarding_completed,
         "is_member": u.is_member,
     }
@@ -64,3 +65,13 @@ async def login(req: AuthRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me")
 async def me(user: User = Depends(get_current_user)):
     return user_dict(user)
+
+
+@router.post("/delete-account")
+async def delete_account(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await db.delete(user)
+    await db.commit()
+    return {"ok": True}

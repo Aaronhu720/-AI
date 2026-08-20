@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { mockDiet, mockFoods } from '@/lib/mockData';
 
@@ -62,6 +62,12 @@ const MACRO_COLORS = [
   { label: '脂肪', color: 'bg-blue-400', ring: '#60A5FA' },
 ];
 
+interface PhotoResult {
+  foods: FoodItem[];
+  total_calories: number;
+  summary: string;
+}
+
 export default function DietPage() {
   const [data, setData] = useState<DietData | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -70,6 +76,10 @@ export default function DietPage() {
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
   const [customName, setCustomName] = useState('');
   const [customCal, setCustomCal] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [photoResult, setPhotoResult] = useState<PhotoResult | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function loadData() {
     try {
@@ -120,6 +130,49 @@ export default function DietPage() {
       meal_type: addingType, name: customName,
       calories: parseInt(customCal), protein: 0, carbs: 0, fat: 0,
     });
+    setShowAdd(false);
+    loadData();
+  }
+
+  function handlePhotoCapture(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreviewUrl(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(',')[1];
+      setAnalyzing(true);
+      setPhotoResult(null);
+      try {
+        const result = await api.post<PhotoResult>('/diet/analyze-photo', {
+          image_base64: base64,
+          meal_type: addingType,
+        });
+        setPhotoResult(result);
+      } catch {
+        setPhotoResult({ foods: [], total_calories: 0, summary: '识别失败，请手动输入' });
+      } finally {
+        setAnalyzing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
+
+  async function addPhotoFoods() {
+    if (!photoResult?.foods.length) return;
+    for (const food of photoResult.foods) {
+      await api.post('/diet/meal', {
+        meal_type: addingType,
+        name: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+      });
+    }
+    setPhotoResult(null);
+    setPreviewUrl(null);
     setShowAdd(false);
     loadData();
   }
@@ -236,6 +289,16 @@ export default function DietPage() {
         })}
       </div>
 
+      {/* Hidden file input for camera */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handlePhotoCapture}
+        className="hidden"
+      />
+
       {/* Add meal modal */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm">
@@ -245,12 +308,89 @@ export default function DietPage() {
                 <h2 className="text-lg font-bold text-dark">
                   添加{mealTypes.find(m => m.key === addingType)?.label}
                 </h2>
-                <button onClick={() => setShowAdd(false)} className="w-8 h-8 rounded-xl bg-black/[0.04] flex items-center justify-center text-muted">
+                <button onClick={() => { setShowAdd(false); setPhotoResult(null); setPreviewUrl(null); }}
+                  className="w-8 h-8 rounded-xl bg-black/[0.04] flex items-center justify-center text-muted">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
+
+              {/* Photo capture button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={analyzing}
+                className="w-full mb-3 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[13px] font-semibold flex items-center justify-center gap-2 shadow-glow-sm active:scale-[0.98] transition-transform disabled:opacity-50"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {analyzing ? '正在识别中...' : '拍照识别食物'}
+              </button>
+
+              {/* Photo analysis result */}
+              {(analyzing || photoResult) && (
+                <div className="mb-3 rounded-2xl bg-amber-50 p-4">
+                  {previewUrl && (
+                    <img src={previewUrl} alt="food" className="w-full h-32 object-cover rounded-xl mb-3" />
+                  )}
+                  {analyzing && (
+                    <div className="flex items-center justify-center gap-2 py-2">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:0ms]" />
+                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:150ms]" />
+                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:300ms]" />
+                      </div>
+                      <span className="text-[13px] text-amber-700 font-medium">AI正在分析食物...</span>
+                    </div>
+                  )}
+                  {photoResult && !analyzing && (
+                    <>
+                      {photoResult.foods.length > 0 ? (
+                        <>
+                          <p className="text-[11px] text-amber-700 font-semibold mb-2">
+                            识别到 {photoResult.foods.length} 种食物 · 共 {photoResult.total_calories} kcal
+                          </p>
+                          <div className="space-y-1.5">
+                            {photoResult.foods.map((food, i) => (
+                              <div key={i} className="flex items-center justify-between bg-white rounded-xl px-3 py-2">
+                                <div>
+                                  <span className="text-[13px] font-medium text-dark">{food.name}</span>
+                                  <span className="text-[10px] text-muted ml-2">
+                                    蛋白{food.protein}g · 碳水{food.carbs}g · 脂肪{food.fat}g
+                                  </span>
+                                </div>
+                                <span className="text-[13px] font-bold text-primary">{food.calories}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => { setPhotoResult(null); setPreviewUrl(null); }}
+                              className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-white text-muted"
+                            >
+                              重新拍照
+                            </button>
+                            <button
+                              onClick={addPhotoFoods}
+                              className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-warm text-white shadow-glow-sm"
+                            >
+                              全部添加
+                            </button>
+                          </div>
+                          {photoResult.summary && (
+                            <p className="text-[10px] text-amber-600 mt-2 text-center">{photoResult.summary}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-[13px] text-amber-700 text-center py-1">{photoResult.summary}</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
               <div className="relative">
                 <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -261,7 +401,6 @@ export default function DietPage() {
                   onChange={e => searchFoods(e.target.value)}
                   placeholder="搜索食物..."
                   className="w-full pl-10 pr-4 py-2.5 rounded-2xl text-[13px] bg-black/[0.03] border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  autoFocus
                 />
               </div>
             </div>
